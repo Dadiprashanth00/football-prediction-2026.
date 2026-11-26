@@ -144,6 +144,24 @@ td.tn{display:flex;align-items:center;gap:8px;text-align:left}
 .lvmini{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin-top:2px}
 .lvmini b{color:var(--ink)}
 @media (max-width:600px){.verd{grid-template-columns:minmax(0,1fr)}}
+/* accas */
+.accbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.accbar select{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);padding:0 12px;font-size:16px}
+.acc2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.accard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.accard header{position:static;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:12px 14px;background:var(--card2);border-bottom:1px solid var(--line);backdrop-filter:none}
+.accard header b{font:700 21px "Barlow Condensed","Roboto Condensed",sans-serif}
+.leg{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.leg:hover{background:var(--card2)}
+.leg .tt{font:700 15px/1.1 "Barlow Condensed","Roboto Condensed",sans-serif;text-align:center}.leg .tt small{display:block;font:500 11px Barlow,sans-serif;color:var(--dim)}
+.leg .mm{font-size:13px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .pk{display:flex;align-items:center;gap:7px;font-weight:600}.leg .pk .badge{width:20px;height:20px}
+.leg .pp{text-align:right;font:700 18px "Barlow Condensed","Roboto Condensed",sans-serif;white-space:nowrap}.leg .pp small{display:block;font:500 11.5px Barlow,sans-serif}
+.st-won{color:var(--win)}.st-lost{color:var(--loss)}.st-live{color:var(--acc)}
+.accsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 14px}
+.accsum div small{display:block;font-size:12px;color:var(--mute)}.accsum div b{font:800 22px "Barlow Condensed","Roboto Condensed",sans-serif}
+.warn{background:#2a1610;border:1px solid #6a3328;color:#ffc9bd;border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:12px}
+@media (max-width:900px){.acc2{grid-template-columns:minmax(0,1fr)}nav.bot button{font-size:11px}}
 footer{max-width:1400px;margin:auto;padding:0 max(3vw,14px) 30px;font-size:13px;color:var(--dim)}
 nav.bot{display:none}
 .chips{display:none}
@@ -274,7 +292,7 @@ function poisRand(l,r){let L=Math.exp(-l),k=0,p=1;do{k++;p*=r()}while(p>L);retur
 const fact=[1];for(let i=1;i<20;i++)fact[i]=fact[i-1]*i;
 const pois=(k,l)=>Math.exp(-l)*l**k/fact[k];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const pct=x=>(x*100).toFixed(x>=.995||x<.005?0:1).replace(/\.0$/,'')+'%';
+const pct=x=>x>0&&x<.01?(x*100).toFixed(2)+'%':(x*100).toFixed(x>=.995||x<.005?0:1).replace(/\.0$/,'')+'%';
 const ymd=d=>{const z=new Date(d);return z.getFullYear()+'-'+String(z.getMonth()+1).padStart(2,'0')+'-'+String(z.getDate()).padStart(2,'0')};
 const addDays=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 const store={get(k,d){try{const v=localStorage.getItem('fp26_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('fp26_'+k,JSON.stringify(v))}catch(e){}}};
@@ -518,12 +536,12 @@ function renderRail(){
  const all={id:'ALL',name:'All competitions'};
  $('#rail').innerHTML=item(all)+'<h3>Domestic leagues</h3>'+COMPS.filter(c=>c.type==='league').map(c=>item({...c,name:c.name})).join('')+'<h3>UEFA</h3>'+COMPS.filter(c=>c.type==='uefa').map(item).join('');
  $('#chips').innerHTML=[all,...COMPS].map(c=>`<button class="chip ${state.comp===c.id?'on':''}" data-c="${c.id}">${c.id==='ALL'?'':clogo(c)}${esc(c.id==='ALL'?'All':c.short)}</button>`).join('')}
-const TABS=[['today','Today'],['live','Live'],['up','Upcoming'],['res','Results'],['table','Standings'],['acc','Accuracy']];
-const ICONS={today:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>',live:'<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',up:'<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/>',res:'<path d="M5 12l4 4 10-10"/>',table:'<path d="M4 5h16M4 10h16M4 15h16M4 20h16"/>',acc:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
+const TABS=[['today','Today'],['live','Live'],['up','Upcoming'],['acca','Accas'],['res','Results'],['table','Standings'],['acc','Accuracy']];
+const ICONS={today:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>',live:'<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',up:'<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/>',res:'<path d="M5 12l4 4 10-10"/>',acca:'<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/>',table:'<path d="M4 5h16M4 10h16M4 15h16M4 20h16"/>',acc:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
 function renderTabs(){const live=state.matches.filter(m=>inComp(m)&&m.status==='LIVE').length;const td=state.matches.filter(m=>inComp(m)&&ymd(m.utc)===today()).length;
  const c={today:td,live};$('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${k==='live'?'lvt':''} ${state.tab===k?'on':''}" data-t="${k}" role="tab" aria-selected="${state.tab===k}">${l}${c[k]?`<span class="c">${c[k]}</span>`:''}</button>`).join('');
  $('#bot').innerHTML=TABS.map(([k,l])=>`<button class="${state.tab===k?'on':''}" data-t="${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[k]}</svg>${l}${k==='live'&&live?` (${live})`:''}</button>`).join('');
- $('#filters').style.display=['table','acc'].includes(state.tab)?'none':'flex'}
+ $('#filters').style.display=['table','acc','acca'].includes(state.tab)?'none':'flex'}
 function renderHero(){
  const ms=state.matches.filter(inComp);const td=ms.filter(m=>ymd(m.utc)===today());const lv=ms.filter(m=>m.status==='LIVE');const c=state.comp;
  const [a1,n1]=hitRate('1x2',c),[a2]=hitRate('ou25',c),[a3]=hitRate('btts',c),[a4,n4]=hitRate('hc',c);
@@ -555,6 +573,7 @@ function renderView(){
   v.innerHTML=groupRender(ms.slice(0,400),{empty:'No completed matches in this range.'})+(!state.date&&total>ms.length?`<div class="more"><button class="btn" data-more="res">Show 7 more days</button></div>`:'')}
  else if(t==='table')v.innerHTML=standings();
  else if(t==='acc')v.innerHTML=accuracy();
+ else if(t==='acca')v.innerHTML=accas();
  liveMini()}
 function latest(){const r=state.matches.filter(m=>inComp(m)&&m.status==='FT'&&ymd(m.utc)<today()).slice(-6).reverse();if(!r.length)return'';
  return `<div class="grp" style="margin-top:28px">Latest results</div>`+r.map(card).join('')}
@@ -571,6 +590,45 @@ function accuracy(){const rows=[['ALL',{name:'All competitions'}],...COMPS.map(c
  const cell=(k,id)=>{const [r,n]=hitRate(k,id);return r==null?'<td>–</td>':`<td><b>${pct(r)}</b> <span style="color:var(--dim)">${n}</span></td>`};
  return `<div class="panel"><h4 class="cond" style="margin:0 0 6px;font-size:22px">How the model has performed</h4><p class="note" style="margin-bottom:12px">Walk-forward test: each finished match was predicted using only results that existed before kick-off, then graded against the final score. Numbers after each rate are matches graded.</p><div class="scroll"><table><thead><tr><th></th><th>Competition</th>${K.map(k=>`<th>${k[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(([id,c])=>`<tr><td>${id==='ALL'?'':clogo(c)}</td><td style="text-align:left">${esc(c.name)}</td>${K.map(k=>cell(k[0],id)).join('')}</tr>`).join('')}</tbody></table></div>
  <p class="note">For context: picking the home team every time typically hits around 45%, and exact-score picks rarely pass 12% for any model. A good model shows its value in calibration over hundreds of matches, not in any single weekend.</p></div>`}
+
+/* ================= accumulators ================= */
+const euDay=u=>new Date(u).toLocaleDateString('en-CA',{timeZone:'Europe/London'});
+function weekendOf(offsetWeeks=0){const now=new Date();const d=new Date(now.toLocaleDateString('en-CA',{timeZone:'Europe/London'})+'T12:00:00Z');const wd=d.getUTCDay();
+ const toSat=wd===6?0:wd===0?-1:6-wd;d.setUTCDate(d.getUTCDate()+toSat+7*offsetWeeks);const sat=d.toISOString().slice(0,10);return[sat,addDays(sat,1)]}
+function buildAcca(day,n,mode){
+ const c=state.matches.filter(m=>euDay(m.utc)===day&&!['PST','CANC'].includes(m.status)&&(state.accComp==='ALL'||m.comp===state.accComp)).map(m=>{const P=predFor(m);
+  let pick,prob;if(mode==='dc'){pick=P.p1+P.px>=P.px+P.p2?'1X':'X2';prob=pick==='1X'?P.p1+P.px:P.px+P.p2}else{pick=P.p1>=P.p2?'1':'2';prob=Math.max(P.p1,P.p2)}
+  return{m,P,pick,prob}}).sort((a,b)=>b.prob-a.prob).slice(0,n);
+ c.forEach(x=>{const m=x.m;if(m.hg==null||m.status==='NS'){x.st='pending';return}const r=m.hg>m.ag?'1':m.hg===m.ag?'X':'2';const ok=x.pick.includes(r);x.st=m.status==='FT'?(ok?'won':'lost'):(ok?'live-ok':'live-no')});
+ const comb=c.reduce((p,x)=>p*x.prob,1);const won=c.filter(x=>x.st==='won').length,lost=c.filter(x=>x.st==='lost').length;
+ return{day,legs:c,comb,won,lost,settled:c.every(x=>x.st==='won'||x.st==='lost')&&c.length>0}}
+function accaCard(A,title){
+ if(!A.legs.length)return `<div class="accard"><header><b>${title}</b><span class="note" style="margin:0">${fmtD(A.day+'T12:00:00Z')}</span></header><div class="empty" style="border:0">No fixtures found for this day${state.accComp!=='ALL'?' in this competition':''}.</div></div>`;
+ const lbl=(x)=>x.pick==='1'?x.m.home:x.pick==='2'?x.m.away:x.pick==='1X'?x.m.home+' or draw':x.m.away+' or draw';
+ const stx=x=>x.st==='won'?'<small class="st-won">✓ Won</small>':x.st==='lost'?'<small class="st-lost">✗ Lost</small>':x.st==='live-ok'?`<small class="st-live">Live ${x.m.hg}–${x.m.ag} ✓</small>`:x.st==='live-no'?`<small class="st-lost">Live ${x.m.hg}–${x.m.ag}</small>`:`<small class="conf-${conf(x.prob,x.P.n)}">${conf(x.prob,x.P.n)}</small>`;
+ const status=A.settled?(A.lost?`<span class="st-lost">Lost (${A.won}/${A.legs.length} legs won)</span>`:'<span class="st-won">Acca won</span>'):A.lost?`<span class="st-lost">Busted · ${A.lost} leg${A.lost>1?'s':''} lost</span>`:A.legs.every(x=>x.st==='pending')?'Not started yet':`${A.won}/${A.legs.length} legs won so far`;
+ return `<div class="accard"><header><b>${title} · ${A.legs.length} legs</b>${A.legs.length<(state.accN||10)?`<span class="note" style="margin:0">only ${A.legs.length} fixtures that day</span>`:''}<span class="note" style="margin:0">${fmtD(A.day+'T12:00:00Z')}</span></header>
+ ${A.legs.map(x=>`<div class="leg" data-m="${esc(x.m.id)}"><div class="tt">${x.m.status==='NS'?fmtT(x.m.utc):x.m.status==='LIVE'?esc(x.m.minute)+"'":'FT'}<small>${esc(CMAP[x.m.comp].short)}</small></div><div><div class="pk">${badge(x.pick.includes('1')?x.m.home:x.m.away,'badge',x.pick.includes('1')?x.m.hc:x.m.ac)}${esc(lbl(x))}</div><div class="mm">${esc(x.m.home)} v ${esc(x.m.away)}${x.m.hg!=null&&x.m.status!=='NS'?` · ${x.m.hg}–${x.m.ag}`:''}</div></div><div class="pp">${pct(x.prob)}${stx(x)}</div></div>`).join('')}
+ <div class="accsum"><div><small>Chance all legs win</small><b>${pct(A.comb)}</b></div><div><small>Break-even odds</small><b>${(1/A.comb).toFixed(A.comb>.1?2:0)}</b></div><div><small>Status</small><b style="font-size:16px">${status}</b></div></div>
+ <div style="padding:0 14px 12px"><button class="btn" data-copyacca="${A.day}">Copy acca</button></div></div>`}
+function accas(){
+ const n=state.accN||10,mode=state.accMode||'win';const [sat,sun]=weekendOf(0);
+ const S=buildAcca(sat,n,mode),U=buildAcca(sun,n,mode);state._accas={[sat]:S,[sun]:U};
+ // track record: previous 6 weekends, same settings
+ const hist=[];for(let w=-1;w>=-6;w--){weekendOf(w).forEach(d=>{const A=buildAcca(d,n,mode);if(A.legs.length&&A.settled)hist.push(A)})}
+ const avgLeg=hist.length?hist.reduce((s,a)=>s+a.won/a.legs.length,0)/hist.length:null;const accWon=hist.filter(a=>!a.lost).length;
+ const ex=Math.pow(.75,n);
+ return `<div class="warn"><b>Read this first:</b> an accumulator only pays if <b>every</b> leg wins. Even if each pick is 75% likely, the chance all ${n} win is only about ${pct(ex)}. Treat these as the model's strongest picks, not a sure thing. Only bet if you are 18+, where it is legal, and with money you can afford to lose.</div>
+ <div class="accbar"><select id="accN" aria-label="Number of legs">${[10,11,12,13,14,15].map(k=>`<option value="${k}" ${k===n?'selected':''}>${k} legs</option>`).join('')}</select>
+ <select id="accMode" aria-label="Acca type"><option value="win" ${mode==='win'?'selected':''}>Win only (1 or 2)</option><option value="dc" ${mode==='dc'?'selected':''}>Safer: win or draw (double chance)</option></select>
+ <select id="accComp" aria-label="Competitions"><option value="ALL">All competitions</option>${COMPS.map(c=>`<option value="${c.id}" ${state.accComp===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+ <div class="acc2">${accaCard(S,'Saturday acca')}${accaCard(U,'Sunday acca')}</div>
+ <p class="note">Picks are the ${n} highest win probabilities among all of that day's fixtures (UK date) across the selected competitions, one pick per match. They rebuild automatically as fixtures, form and results update; kick-off times are shown in your time zone. Break-even odds = the bookmaker odds at which this acca would be a fair bet.</p>
+ <div class="grp" style="margin-top:22px">Track record · last 6 weekends (same settings)</div>
+ <div class="panel">${hist.length?`<p style="margin:0 0 10px">Accas won: <b>${accWon} of ${hist.length}</b> · average legs correct: <b>${pct(avgLeg)}</b></p><div class="scroll"><table><thead><tr><th>Day</th><th style="text-align:left">Date</th><th>Legs won</th><th>Model chance</th><th>Result</th></tr></thead><tbody>${hist.map(a=>`<tr><td>${new Date(a.day+'T12:00:00Z').toLocaleDateString([],{weekday:'short'})}</td><td style="text-align:left">${fmtD(a.day+'T12:00:00Z')}</td><td>${a.won}/${a.legs.length}</td><td>${pct(a.comb)}</td><td>${a.lost?'<span class="st-lost">Lost</span>':'<span class="st-won">Won</span>'}</td></tr>`).join('')}</tbody></table></div><p class="note">Past accas are rebuilt using only data available before each match, so this is an honest test, not hindsight.</p>`:'<p class="note" style="margin:0">Not enough finished weekends yet.</p>'}</div>`}
+async function copyAcca(day){const A=state._accas&&state._accas[day];if(!A)return;const t=`Football Prediction 2026 – ${fmtD(day+'T12:00:00Z')} acca (${A.legs.length} legs)\n`+A.legs.map((x,i)=>`${i+1}. ${x.m.home} v ${x.m.away} (${fmtT(x.m.utc)}) – ${x.pick==='1'?x.m.home+' to win':x.pick==='2'?x.m.away+' to win':x.pick==='1X'?x.m.home+' or draw':x.m.away+' or draw'} · ${pct(x.prob)}`).join('\n')+`\nChance all win: ${pct(A.comb)} · break-even odds ${(1/A.comb).toFixed(0)}\nStatistical estimates only, not guarantees. 18+.`;
+ try{await navigator.clipboard.writeText(t);toast('Acca copied')}catch(e){toast('Copy not allowed here')}}
+function toast(msg){let el=$('#toast');if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#ffd23f;color:#1d1600;padding:10px 16px;border-radius:10px;font-weight:600;z-index:70';document.body.appendChild(el)}el.textContent=msg;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',2000)}
 
 /* ================= match sheet ================= */
 async function openMatch(id){
@@ -644,9 +702,11 @@ async function load(){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b){state.comp=b.dataset.c;store.set('comp',state.comp);renderAll();window.scrollTo({top:0});return}
  const t=e.target.closest('[data-t]');if(t){state.tab=t.dataset.t;store.set('tab',state.tab);renderTabs();renderView();window.scrollTo({top:0});return}
  const m=e.target.closest('[data-m]');if(m){openMatch(m.dataset.m);return}
+ const ca=e.target.closest('[data-copyacca]');if(ca){copyAcca(ca.dataset.copyacca);return}
  const mo=e.target.closest('[data-more]');if(mo){state.days[mo.dataset.more]+=7;renderView()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();$('#dlg').classList.remove('on')}if(e.key==='Enter'&&e.target.matches('.match'))openMatch(e.target.dataset.m)});
 $('#ov').onclick=closeSheet;
+document.addEventListener('change',e=>{if(e.target.id==='accN'){state.accN=+e.target.value;store.set('accN',state.accN);renderView()}else if(e.target.id==='accMode'){state.accMode=e.target.value;store.set('accMode',state.accMode);renderView()}else if(e.target.id==='accComp'){state.accComp=e.target.value;renderView()}});
 $('#q').oninput=e=>{state.q=e.target.value;renderView()};
 $('#dt').onchange=e=>{state.date=e.target.value;renderView()};
 $('#mkt').onchange=e=>{state.mkt=e.target.value;store.set('mkt',state.mkt);renderView()};
@@ -656,7 +716,7 @@ $('#setBtn').onclick=()=>{$('#src').value=state.cfg.src;$('#key').value=state.cf
 $('#dlgX').onclick=()=>$('#dlg').classList.remove('on');
 $('#dlgOk').onclick=()=>{const src=$('#src').value,key=$('#key').value.trim();if((src==='fd'||src==='af')&&!key){$('#dlgMsg').textContent='Paste an API key for this provider first.';return}
  state.cfg={src,key,proxy:$('#proxy').value.trim()};store.set('cfg2',state.cfg);state.force=true;$('#dlg').classList.remove('on');load()};
-state.mkt=store.get('mkt','1x2');$('#mkt').value=state.mkt;state.tab=store.get('tab','today');
+state.mkt=store.get('mkt','1x2');state.accN=store.get('accN',10);state.accMode=store.get('accMode','win');state.accComp='ALL';$('#mkt').value=state.mkt;state.tab=store.get('tab','today');
 load();
 setInterval(async()=>{if(state.cfg.src==='demo'||state.fellBack){const live=state.matches.some(m=>m.status==='LIVE')||state.matches.some(m=>m.status==='NS'&&Date.parse(m.utc)<Date.now());if(live&&!$('#sheet').classList.contains('on')){state.matches=genDemo();state.H=buildHist(state.matches);state.P=new Map();computeAcc();renderAll()}}
  else if(state.matches.some(m=>m.status==='LIVE'||(m.status==='NS'&&Date.parse(m.utc)<Date.now()+6e4&&Date.now()-Date.parse(m.utc)<3*3600e3))){if(state.cfg.src==='auto'){if(state.open)return;await refreshLive();renderTabs();renderHero();renderView()}else{state.force=true;load()}}},30000);
