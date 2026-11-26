@@ -26,7 +26,7 @@ function norm(ev, comp) {
     hth: s.status === 'FT' && ht(h) != null ? +ht(h) : null, hta: s.status === 'FT' && ht(a) != null ? +ht(a) : null
   };
 }
-const out = []; const report = {};
+const out = []; const report = {}; const errs = [];
 for (const [comp, code] of Object.entries(LEAGUES)) {
   report[comp] = 0;
   for (const m of months) {
@@ -34,13 +34,14 @@ for (const [comp, code] of Object.entries(LEAGUES)) {
     const range = `${m.getUTCFullYear()}${pad(m.getUTCMonth() + 1)}01-${end.getUTCFullYear()}${pad(end.getUTCMonth() + 1)}${pad(end.getUTCDate())}`;
     const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard?dates=${range}&limit=1000`;
     try {
-      const r = await fetch(url); if (!r.ok) { console.log(comp, range, r.status); continue; }
+      const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 FootballPrediction2026' } }); if (!r.ok) { errs.push(`${comp} ${range} HTTP ${r.status}`); continue; }
       const j = await r.json();
       for (const ev of j.events || []) { const n = norm(ev, comp); if (n) { out.push(n); report[comp]++; } }
-    } catch (e) { console.log(comp, range, e.message); }
+    } catch (e) { errs.push(`${comp} ${range} ${e.message} ${e.cause?.code||''}`); }
   }
 }
 const seen = new Set(); const matches = out.filter(m => !seen.has(m.id) && seen.add(m.id)).sort((a, b) => a.utc < b.utc ? -1 : 1);
-console.log('matches per competition', report, 'total', matches.length);
+console.log(`::notice::matches per competition ${JSON.stringify(report)} total ${matches.length}`);
+errs.slice(0, 8).forEach(e => console.log(`::warning::${e}`));
 if (matches.length < 200) { console.error('Too few matches fetched, keeping previous data'); process.exit(1); }
 writeFileSync('web/data.json', JSON.stringify({ source: 'ESPN', updated: new Date().toISOString(), matches }));
