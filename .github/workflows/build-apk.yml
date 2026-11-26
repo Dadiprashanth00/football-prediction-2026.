@@ -27,7 +27,15 @@ jobs:
         run: |
           echo "Android SDK: $ANDROID_HOME"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+          set +e
+          ./gradlew --no-daemon assembleDebug --stacktrace > build.log 2>&1
+          code=$?
+          tail -60 build.log
+          if [ $code -ne 0 ]; then
+            grep -nE "error:|e: |FAILURE|What went wrong|Could not|failed|Exception|AAPT|resource" build.log | grep -v "^.*at " | head -40 | while IFS= read -r line; do echo "::error::${line:0:900}"; done
+            exit $code
+          fi
+          set -e
           cp app/build/outputs/apk/debug/app-debug.apk ../FootballPrediction2026.apk
 
       - uses: actions/upload-artifact@v4
