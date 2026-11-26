@@ -348,11 +348,11 @@ function espnNorm(ev,comp){const c=ev.competitions&&ev.competitions[0];if(!c)ret
  const pl=st==='FT'||st==='LIVE',ht=x=>x.linescores&&x.linescores[0]?x.linescores[0].value:null;
  return{id:'es'+ev.id,comp,round:ev.week&&ev.week.number?'Matchday '+ev.week.number:'',home:h.team.displayName,away:a.team.displayName,hc:h.team.logo||'',ac:a.team.logo||'',utc:ev.date,status:st,minute,hg:pl?+h.score:null,ag:pl?+a.score:null,hth:st==='FT'&&ht(h)!=null?+ht(h):null,hta:st==='FT'&&ht(a)!=null?+ht(a):null}}
 const d8=d=>d.toISOString().slice(0,10).replace(/-/g,'');
-async function espnRange(comp,dates){const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${ESPN[comp]}/scoreboard?dates=${dates}&limit=300`);if(!r.ok)throw new Error(r.status);const j=await r.json();return(j.events||[]).map(e=>espnNorm(e,comp)).filter(Boolean)}
+async function espnRange(comp,dates){const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${ESPN[comp]}/scoreboard?dates=${dates}&limit=300`,{signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error(r.status);const j=await r.json();return(j.events||[]).map(e=>espnNorm(e,comp)).filter(Boolean)}
 async function pool(tasks,n){const out=[];let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<tasks.length){const k=i++;try{out.push(...await tasks[k]())}catch(e){}}}));return out}
 async function loadAuto(){
  let base=[],errs=[];
- try{const r=await fetch('data.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'});if(r.ok){const j=await r.json();base=j.matches||[];state.updated=j.updated}}catch(e){}
+ try{const r=await fetch('data.json?v='+Math.floor(Date.now()/60000),{cache:'no-store',signal:AbortSignal.timeout(15000)});if(r.ok){const j=await r.json();base=j.matches||[];state.updated=j.updated}}catch(e){}
  if(!base.length){const c=store.get('espn_season',null);if(c&&Date.now()-c.t<6*3600e3)base=c.m;else{
    const tasks=[];Object.keys(ESPN).forEach(k=>{for(let m=0;m<12;m++){const a=new Date(Date.UTC(2026,6+m,1));tasks.push(()=>espnRange(k,d8(a).slice(0,6)))}});
    base=await pool(tasks,8);if(base.length){store.set('espn_season',{t:Date.now(),m:base});state.updated=new Date().toISOString()}}}
@@ -430,7 +430,7 @@ const SUM=new Map();
 const num=v=>{const x=parseFloat(v);return isNaN(x)?0:x};
 async function fetchSummary(m,force){
  if(!m.id.startsWith('es'))return null;const c=SUM.get(m.id);if(c&&!force&&Date.now()-c.t<25000)return c.d;
- const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${ESPN[m.comp]}/summary?event=${m.id.slice(2)}`,{cache:'no-store'});if(!r.ok)throw new Error(r.status);
+ const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${ESPN[m.comp]}/summary?event=${m.id.slice(2)}`,{cache:'no-store',signal:AbortSignal.timeout(12000)});if(!r.ok)throw new Error(r.status);
  const j=await r.json();const T=(j.boxscore&&j.boxscore.teams)||[];const hid=j.header?.competitions?.[0]?.competitors?.find(x=>x.homeAway==='home')?.team?.id;
  const side=t=>String(t.team.id)===String(hid)?'h':'a';const st={h:{},a:{}};const names={h:'',a:''};
  T.forEach(t=>{const k=T.length===2&&hid==null?(T.indexOf(t)?'h':'a'):side(t);names[k]=t.team.displayName;(t.statistics||[]).forEach(x=>st[k][x.name]=num(x.displayValue))});
