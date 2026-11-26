@@ -25,6 +25,10 @@ import androidx.webkit.WebViewAssetLoader;
 public class MainActivity extends AppCompatActivity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String START = "https://" + HOST + "/assets/www/index.html";
+    // Live site: always the newest version of the app. Falls back to the bundled copy when offline.
+    private static final String SITE_HOST = "dadiprashanth00.github.io";
+    private static final String SITE = "https://" + SITE_HOST + "/football-prediction-2026./";
+    private boolean usingBundled = false;
     private WebView web;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -67,9 +71,17 @@ public class MainActivity extends AppCompatActivity {
                 return loader.shouldInterceptRequest(request.getUrl());
             }
             @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                if (request.isForMainFrame() && !usingBundled) { usingBundled = true; view.loadUrl(START); }
+            }
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse resp) {
+                if (request.isForMainFrame() && !usingBundled && resp.getStatusCode() >= 400) { usingBundled = true; view.loadUrl(START); }
+            }
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
-                if (HOST.equals(u.getHost())) return false;
+                if (HOST.equals(u.getHost()) || SITE_HOST.equals(u.getHost())) return false;
                 // external links (provider sign-up pages etc.) open in the browser
                 startActivity(new Intent(Intent.ACTION_VIEW, u));
                 return true;
@@ -89,7 +101,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(START);
+        else {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            boolean online = cm != null && cm.getActiveNetwork() != null;
+            if (online) { s.setCacheMode(WebSettings.LOAD_NO_CACHE); web.loadUrl(SITE); }
+            else { usingBundled = true; web.loadUrl(START); }
+        }
     }
 
     @Override
