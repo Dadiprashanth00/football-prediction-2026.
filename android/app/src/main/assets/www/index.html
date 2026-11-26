@@ -196,9 +196,10 @@ nav.bot{display:none}
 <div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
  <div class="box">
   <h3 id="dlgT" class="cond" style="margin:0;font-size:26px">Data source</h3>
-  <p class="note">Demo mode builds a full 2026/27 schedule for the real line-ups and simulates results, so every screen works offline. For official fixtures, live scores and results, connect a data provider. Live providers work in the Android app and in the HTML file opened in your browser; the hosted preview page blocks outside connections.</p>
+  <p class="note">The default source is free real data: official 2026/27 fixtures, results and live scores for all eight competitions, refreshed every 30 minutes (live scores every minute while matches are on). You can also use your own football-data.org or API-Football key, or the offline demo season. The claude.ai preview page blocks outside connections, so it always shows the demo.</p>
   <label for="src">Provider</label>
   <select id="src">
+   <option value="auto">Real data, free (ESPN feed, all 8 competitions, no key)</option>
    <option value="demo">Demo (simulated season)</option>
    <option value="fd">football-data.org (free tier: PL, La Liga, Serie A, Ligue 1, Primeira, UCL)</option>
    <option value="af">API-Football / api-sports.io (all 8 incl. UEL &amp; UECL)</option>
@@ -272,8 +273,8 @@ function eloLam(rh,ra,neutral){const d=(rh-ra+(neutral?0:HFA))/100;return[1.36*M
 const eloOf=n=>ELO[n]??ELO[aliasOf(n)]??1650;
 const NORM=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\b(fc|cf|afc|sc|ac|as|ssc|cd|rc|sl|ud|ss|fk|sk|club|calcio|de|futebol|1907|1909|1913|hotspur|wanderers)\b/g,'').replace(/[^a-z0-9]/g,'');
 const NIDX={};Object.keys(ELO).forEach(k=>NIDX[NORM(k)]=k);
-const ALIAS={internazionalemilano:'Inter',fcinternazionalemilano:'Inter',parissaintgermain:'Paris Saint-Germain',psg:'Paris Saint-Germain',atleticomadrid:'Atlético Madrid',clubatleticomadrid:'Atlético Madrid',sportinglisbon:'Sporting CP',sportingclubeportugal:'Sporting CP',manunited:'Manchester United',mancity:'Manchester City',wolverhampton:'Wolves',spurs:'Tottenham Hotspur',tottenham:'Tottenham Hotspur',newcastle:'Newcastle United',brightonhovealbion:'Brighton',athleticbilbao:'Athletic Club',realbetisbalompie:'Real Betis',rcdeportivo:'Deportivo La Coruña',deportivo:'Deportivo La Coruña',racing:'Racing Santander',bayernmunchen:'Bayern Munich',fcbayernmunchen:'Bayern Munich',psv:'PSV Eindhoven',bodoglimt:'Bodø/Glimt',olympiquelyonnais:'Lyon',olympiquemarseille:'Marseille',staderennais:'Rennes',rclens:'Lens',losc:'Lille',lillelosc:'Lille',ogcnice:'Nice',ajauxerre:'Auxerre',slbenfica:'Benfica',fcporto:'Porto',scbraga:'Braga',vitoriaguimaraes:'Vitória SC',bayer04leverkusen:'Bayer Leverkusen',leverkusen:'Bayer Leverkusen',tsghoffenheim:'Hoffenheim',redbullsalzburg:'Red Bull Salzburg',salzburg:'Red Bull Salzburg',fccopenhagen:'Copenhagen',fckobenhavn:'Copenhagen',crvenazvezda:'Red Star Belgrade',freiburg:'SC Freiburg',hearts:'Heart of Midlothian'};
-function aliasOf(n){const k=NORM(n);if(NIDX[k])return NIDX[k];if(ALIAS[k])return ALIAS[k];const a=Object.keys(ALIAS).find(x=>k.includes(x));return a?ALIAS[a]:n}
+const ALIAS={internazionalemilano:'Inter',fcinternazionalemilano:'Inter',parissaintgermain:'Paris Saint-Germain',psg:'Paris Saint-Germain',atleticomadrid:'Atlético Madrid',clubatleticomadrid:'Atlético Madrid',sportinglisbon:'Sporting CP',sportingclubeportugal:'Sporting CP',manunited:'Manchester United',mancity:'Manchester City',wolverhampton:'Wolves',spurs:'Tottenham Hotspur',tottenham:'Tottenham Hotspur',newcastle:'Newcastle United',brightonhovealbion:'Brighton',athleticbilbao:'Athletic Club',realbetisbalompie:'Real Betis',rcdeportivo:'Deportivo La Coruña',deportivo:'Deportivo La Coruña',racing:'Racing Santander',bayernmunchen:'Bayern Munich',fcbayernmunchen:'Bayern Munich',psv:'PSV Eindhoven',bodoglimt:'Bodø/Glimt',olympiquelyonnais:'Lyon',olympiquemarseille:'Marseille',staderennais:'Rennes',rclens:'Lens',losc:'Lille',lillelosc:'Lille',ogcnice:'Nice',ajauxerre:'Auxerre',slbenfica:'Benfica',fcporto:'Porto',scbraga:'Braga',vitoriaguimaraes:'Vitória SC',bayer04leverkusen:'Bayer Leverkusen',leverkusen:'Bayer Leverkusen',tsghoffenheim:'Hoffenheim',redbullsalzburg:'Red Bull Salzburg',salzburg:'Red Bull Salzburg',fccopenhagen:'Copenhagen',fckobenhavn:'Copenhagen',crvenazvezda:'Red Star Belgrade',internazionale:'Inter',brestois:'Brest',estactroyes:'Troyes',estreladaamadora:'Estrela Amadora',estrelaamadora:'Estrela Amadora',sportingclub:'Sporting CP',realbetis:'Real Betis',celta:'Celta Vigo',alaves:'Alavés',bodo:'Bodø/Glimt',escaldes:"Inter Club d'Escaldes",nacional:'Nacional',hapoelbeer:"Hapoel Be'er Sheva",bournemouth:'Bournemouth',unionst:'Union Saint-Gilloise',unionsaint:'Union Saint-Gilloise',csucraiova:'Universitatea Craiova',craiova:'Universitatea Craiova',freiburg:'SC Freiburg',hearts:'Heart of Midlothian'};
+function aliasOf(n){const k=NORM(n);if(NIDX[k])return NIDX[k];if(ALIAS[k])return ALIAS[k];const a=Object.keys(ALIAS).find(x=>k.includes(x));if(a)return ALIAS[a];let best='';for(const key in NIDX){if(key.length>=4&&(k.includes(key)||(k.length>=5&&key.includes(k)))&&key.length>best.length)best=key}return best?NIDX[best]:n}
 
 /* ================= DEMO season generator ================= */
 const BREAKS=['2026-09-26','2026-10-03','2026-11-14','2027-03-27'];
@@ -320,6 +321,26 @@ function genDemo(){
 /* ================= LIVE providers ================= */
 const ST_FD={FINISHED:'FT',AWARDED:'FT',IN_PLAY:'LIVE',PAUSED:'LIVE',LIVE:'LIVE',SCHEDULED:'NS',TIMED:'NS',POSTPONED:'PST',SUSPENDED:'PST',CANCELLED:'CANC'};
 const ST_AF={FT:'FT',AET:'FT',PEN:'FT',AWD:'FT',WO:'FT','1H':'LIVE',HT:'LIVE','2H':'LIVE',ET:'LIVE',BT:'LIVE',P:'LIVE',LIVE:'LIVE',INT:'LIVE',NS:'NS',TBD:'NS',PST:'PST',CANC:'CANC',ABD:'CANC',SUSP:'PST'};
+const ESPN={PL:'eng.1',PD:'esp.1',SA:'ita.1',FL1:'fra.1',PPL:'por.1',CL:'uefa.champions',EL:'uefa.europa',ECL:'uefa.europa.conf'};
+function espnNorm(ev,comp){const c=ev.competitions&&ev.competitions[0];if(!c)return null;const h=c.competitors.find(x=>x.homeAway==='home'),a=c.competitors.find(x=>x.homeAway==='away');if(!h||!a)return null;
+ const t=(ev.status&&ev.status.type)||{};let st='NS',minute='';
+ if(t.state==='in'){st='LIVE';minute=t.name==='STATUS_HALFTIME'?'HT':String(ev.status.displayClock||'').replace(/'/g,'')}else if(t.state==='post')st=t.completed?'FT':(/CANCEL|ABANDON/.test(t.name)?'CANC':'PST');else if(/POSTPONED/.test(t.name||''))st='PST';
+ const pl=st==='FT'||st==='LIVE',ht=x=>x.linescores&&x.linescores[0]?x.linescores[0].value:null;
+ return{id:'es'+ev.id,comp,round:ev.week&&ev.week.number?'Matchday '+ev.week.number:'',home:h.team.displayName,away:a.team.displayName,hc:h.team.logo||'',ac:a.team.logo||'',utc:ev.date,status:st,minute,hg:pl?+h.score:null,ag:pl?+a.score:null,hth:st==='FT'&&ht(h)!=null?+ht(h):null,hta:st==='FT'&&ht(a)!=null?+ht(a):null}}
+const d8=d=>d.toISOString().slice(0,10).replace(/-/g,'');
+async function espnRange(comp,dates){const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${ESPN[comp]}/scoreboard?dates=${dates}&limit=300`);if(!r.ok)throw new Error(r.status);const j=await r.json();return(j.events||[]).map(e=>espnNorm(e,comp)).filter(Boolean)}
+async function pool(tasks,n){const out=[];let i=0;await Promise.all(Array.from({length:n},async()=>{while(i<tasks.length){const k=i++;try{out.push(...await tasks[k]())}catch(e){}}}));return out}
+async function loadAuto(){
+ let base=[],errs=[];
+ try{const r=await fetch('data.json?v='+Math.floor(Date.now()/60000),{cache:'no-store'});if(r.ok){const j=await r.json();base=j.matches||[];state.updated=j.updated}}catch(e){}
+ if(!base.length){const c=store.get('espn_season',null);if(c&&Date.now()-c.t<6*3600e3)base=c.m;else{
+   const tasks=[];Object.keys(ESPN).forEach(k=>{for(let m=0;m<12;m++){const a=new Date(Date.UTC(2026,6+m,1));tasks.push(()=>espnRange(k,d8(a).slice(0,6)))}});
+   base=await pool(tasks,8);if(base.length){store.set('espn_season',{t:Date.now(),m:base});state.updated=new Date().toISOString()}}}
+ const now=Date.now(),fresh=await pool(Object.keys(ESPN).flatMap(k=>[-1,0,1].map(o=>()=>espnRange(k,d8(new Date(now+o*864e5))))),8);
+ if(fresh.length)state.updated=new Date().toISOString();
+ if(!base.length&&!fresh.length)throw new Error('Could not reach the live football feed');
+ const M=new Map(base.map(m=>[m.id,m]));fresh.forEach(m=>M.set(m.id,m));
+ return{matches:[...M.values()].sort((a,b)=>a.utc<b.utc?-1:1),errs}}
 async function getJSON(url,headers){const cfg=state.cfg;const u=cfg.proxy?cfg.proxy+encodeURIComponent(url):url;const r=await fetch(u,{headers});if(!r.ok)throw new Error(r.status+' '+r.statusText);return r.json()}
 async function loadLive(){
  const cfg=state.cfg,out=[],errs=[];
@@ -385,7 +406,7 @@ function picks(P){
 const lbl1x2={1:'Home win',X:'Draw',2:'Away win'};
 
 /* ================= state ================= */
-const state={cfg:store.get('cfg',{src:'demo',key:'',proxy:''}),comp:store.get('comp','ALL'),tab:'today',q:'',date:'',mkt:'1x2',days:{up:5,res:5},matches:[],H:{},P:new Map(),acc:null,loading:false,err:[]};
+const state={cfg:store.get('cfg2',{src:'auto',key:'',proxy:''}),comp:store.get('comp','ALL'),tab:'today',q:'',date:'',mkt:'1x2',days:{up:5,res:5},matches:[],H:{},P:new Map(),acc:null,loading:false,err:[]};
 function predFor(m){if(!state.P.has(m.id))state.P.set(m.id,predict(m,state.H));return state.P.get(m.id)}
 function computeAcc(){// walk-forward evaluation using only data before each match
  const A={};const add=(k,c,hit)=>{const o=A[c]=A[c]||{};o[k]=o[k]||[0,0];o[k][0]+=hit?1:0;o[k][1]++};
@@ -421,7 +442,7 @@ function renderHero(){
  const ms=state.matches.filter(inComp);const td=ms.filter(m=>ymd(m.utc)===today());const lv=ms.filter(m=>m.status==='LIVE');const c=state.comp;
  const [a1,n1]=hitRate('1x2',c),[a2]=hitRate('ou25',c),[a3]=hitRate('btts',c),[a4,n4]=hitRate('hc',c);
  const st=(v,l,s,cls='')=>`<div class="stat ${cls}"><div class="v num">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`;
- $('#hero').innerHTML=st(td.length,"Today's matches",td.filter(m=>m.status==='FT').length+' finished')+st(lv.length,'Live now',lv.length?'auto-refreshing':'none in play','lv')+st(a1==null?'–':pct(a1),'1X2 hit rate',n1+' graded matches','ac')+st(a2==null?'–':pct(a2),'Over/Under 2.5','hit rate')+st(a4==null?(a3==null?'–':pct(a3)):pct(a4),a4==null?'BTTS hit rate':'Picks ≥60% hit',n4?n4+' picks':'')}
+ $('#hero').innerHTML=st(td.length,"Today's matches",td.filter(m=>m.status==='FT').length+' finished'+(state.updated&&!state.fellBack&&state.cfg.src!=='demo'?' · updated '+new Date(state.updated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''))+st(lv.length,'Live now',lv.length?'auto-refreshing':'none in play','lv')+st(a1==null?'–':pct(a1),'1X2 hit rate',n1+' graded matches','ac')+st(a2==null?'–':pct(a2),'Over/Under 2.5','hit rate')+st(a4==null?(a3==null?'–':pct(a3)):pct(a4),a4==null?'BTTS hit rate':'Picks ≥60% hit',n4?n4+' picks':'')}
 function card(m){
  const c=CMAP[m.comp],P=predFor(m),pk=picks(P),sel=pk[state.mkt];
  const fin=m.status==='FT',lv=m.status==='LIVE',has=m.hg!=null&&m.status!=='NS';
@@ -452,7 +473,7 @@ function latest(){const r=state.matches.filter(m=>inComp(m)&&m.status==='FT'&&ym
  return `<div class="grp" style="margin-top:28px">Latest results</div>`+r.map(card).join('')}
 function table(c){const T={};const ms=state.matches.filter(m=>m.comp===c.id&&m.status==='FT'&&m.hg!=null);
  const row=n=>T[n]=T[n]||{n,p:0,w:0,d:0,l:0,gf:0,ga:0,pts:0,f:[]};
- (c.teamList||[]).forEach(row);
+ if(state.cfg.src==='demo'||state.fellBack)(c.teamList||[]).forEach(row);
  ms.forEach(m=>{const h=row(m.home),a=row(m.away);h.p++;a.p++;h.gf+=m.hg;h.ga+=m.ag;a.gf+=m.ag;a.ga+=m.hg;
   if(m.hg>m.ag){h.w++;a.l++;h.pts+=3;h.f.push('W');a.f.push('L')}else if(m.hg<m.ag){a.w++;h.l++;a.pts+=3;a.f.push('W');h.f.push('L')}else{h.d++;a.d++;h.pts++;a.pts++;h.f.push('D');a.f.push('D')}});
  return Object.values(T).sort((x,y)=>y.pts-x.pts||(y.gf-y.ga)-(x.gf-x.ga)||y.gf-x.gf||x.n.localeCompare(y.n))}
@@ -516,15 +537,16 @@ function closeSheet(){$('#sheet').classList.remove('on');$('#ov').classList.remo
 
 /* ================= load & events ================= */
 function renderAll(){renderRail();renderTabs();renderHero();renderView();
- const pill=$('#srcPill');pill.className='pill '+(state.cfg.src==='demo'?'demo':'live');pill.textContent=state.cfg.src==='demo'?'Demo data':state.cfg.src==='fd'?'Live · football-data':'Live · API-Football';
- $('#banner').innerHTML=state.cfg.src==='demo'?`<div class="banner">Demo mode: the 2026/27 line-ups are real, but fixture dates and results are simulated so every feature works offline. Open settings to connect official fixtures and live scores.</div>`:state.err.length?`<div class="banner">Some competitions could not load: ${esc(state.err.join(' · '))}</div>`:''}
+ const pill=$('#srcPill');const demo=state.cfg.src==='demo'||state.fellBack;pill.className='pill '+(demo?'demo':'live');pill.textContent=demo?'Demo data':state.cfg.src==='auto'?'Live · ESPN':state.cfg.src==='fd'?'Live · football-data':'Live · API-Football';
+ $('#banner').innerHTML=state.fellBack?`<div class="banner">Couldn't reach live football data (${esc(state.err.join(' · '))}), so these fixtures are simulated. Check your internet connection and tap refresh.</div>`:state.cfg.src==='demo'?`<div class="banner">Demo mode: the 2026/27 line-ups are real, but fixture dates and results are simulated so every feature works offline. Open settings to connect official fixtures and live scores.</div>`:state.err.length?`<div class="banner">Some competitions could not load: ${esc(state.err.join(' · '))}</div>`:''}
 async function load(){
- state.loading=true;$('#view').innerHTML='<div class="empty">Loading fixtures…</div>';state.err=[];
+ state.loading=true;state.fellBack=false;$('#view').innerHTML='<div class="empty">Loading fixtures…</div>';state.err=[];
  let ms;
  if(state.cfg.src==='demo')ms=genDemo();
  else{try{const cached=store.get('cache_'+state.cfg.src,null);
-   if(cached&&Date.now()-cached.t<10*60000&&!state.force)ms=cached.m;else{const r=await loadLive();ms=r.matches;state.err=r.errs;if(ms.length)store.set('cache_'+state.cfg.src,{t:Date.now(),m:ms})}
-   if(!ms.length)throw new Error(state.err[0]||'No data returned')}catch(e){state.err=[e.message+'. Showing demo data instead.'];ms=genDemo()}}
+   if(state.cfg.src==='auto'){const r=await loadAuto();ms=r.matches;ms.forEach(m=>{m.home=aliasOf(m.home);m.away=aliasOf(m.away)})}
+   else if(cached&&Date.now()-cached.t<10*60000&&!state.force)ms=cached.m;else{const r=await loadLive();ms=r.matches;state.err=r.errs;if(ms.length)store.set('cache_'+state.cfg.src,{t:Date.now(),m:ms})}
+   if(!ms.length)throw new Error(state.err[0]||'No data returned')}catch(e){state.err=[e.message+'. Showing simulated demo data instead.'];state.fellBack=true;ms=genDemo()}}
  state.force=false;state.matches=ms;state.H=buildHist(ms);state.P=new Map();computeAcc();state.loading=false;renderAll()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b){state.comp=b.dataset.c;store.set('comp',state.comp);renderAll();window.scrollTo({top:0});return}
  const t=e.target.closest('[data-t]');if(t){state.tab=t.dataset.t;store.set('tab',state.tab);renderTabs();renderView();window.scrollTo({top:0});return}
@@ -539,12 +561,12 @@ $('#clr').onclick=()=>{state.q='';state.date='';$('#q').value='';$('#dt').value=
 $('#refreshBtn').onclick=()=>{state.force=true;load()};
 $('#setBtn').onclick=()=>{$('#src').value=state.cfg.src;$('#key').value=state.cfg.key;$('#proxy').value=state.cfg.proxy;$('#dlgMsg').textContent='';$('#dlg').classList.add('on')};
 $('#dlgX').onclick=()=>$('#dlg').classList.remove('on');
-$('#dlgOk').onclick=()=>{const src=$('#src').value,key=$('#key').value.trim();if(src!=='demo'&&!key){$('#dlgMsg').textContent='Paste an API key for this provider first.';return}
- state.cfg={src,key,proxy:$('#proxy').value.trim()};store.set('cfg',state.cfg);state.force=true;$('#dlg').classList.remove('on');load()};
+$('#dlgOk').onclick=()=>{const src=$('#src').value,key=$('#key').value.trim();if((src==='fd'||src==='af')&&!key){$('#dlgMsg').textContent='Paste an API key for this provider first.';return}
+ state.cfg={src,key,proxy:$('#proxy').value.trim()};store.set('cfg2',state.cfg);state.force=true;$('#dlg').classList.remove('on');load()};
 state.mkt=store.get('mkt','1x2');$('#mkt').value=state.mkt;state.tab=store.get('tab','today');
 load();
-setInterval(()=>{if(state.cfg.src==='demo'){const live=state.matches.some(m=>m.status==='LIVE')||state.matches.some(m=>m.status==='NS'&&Date.parse(m.utc)<Date.now());if(live&&!$('#sheet').classList.contains('on')){state.matches=genDemo();state.H=buildHist(state.matches);state.P=new Map();computeAcc();renderAll()}}
- else if(state.matches.some(m=>m.status==='LIVE')){state.force=true;load()}},60000);
+setInterval(()=>{if(state.cfg.src==='demo'||state.fellBack){const live=state.matches.some(m=>m.status==='LIVE')||state.matches.some(m=>m.status==='NS'&&Date.parse(m.utc)<Date.now());if(live&&!$('#sheet').classList.contains('on')){state.matches=genDemo();state.H=buildHist(state.matches);state.P=new Map();computeAcc();renderAll()}}
+ else if(state.matches.some(m=>m.status==='LIVE'||(m.status==='NS'&&Date.parse(m.utc)<Date.now()&&Date.now()-Date.parse(m.utc)<3*3600e3))){state.force=true;load()}},60000);
 }
 </script>
 </body>
