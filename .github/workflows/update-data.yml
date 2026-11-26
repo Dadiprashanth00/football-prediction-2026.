@@ -1,0 +1,32 @@
+name: Update fixtures and results
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Download real fixtures and results
+        run: node scripts/fetch-data.mjs
+      - name: Save data to the repository
+        run: |
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add web/data.json
+          git diff --cached --quiet || (git commit -qm "Update fixtures and results" && git push)
+      - name: Publish website (GitHub Pages)
+        run: |
+          mkdir site && cp web/index.html web/data.json site/ && touch site/.nojekyll
+          cd site && git init -q -b gh-pages
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add -A && git commit -qm "Update website data"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

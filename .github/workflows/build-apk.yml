@@ -14,8 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Sync latest web app into the APK
-        run: cp web/index.html android/app/src/main/assets/www/index.html
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Download real fixtures and results
+        run: node scripts/fetch-data.mjs || echo "fetch failed, using committed data.json"
+
+      - name: Copy the web app into the APK
+        run: |
+          cp web/index.html android/app/src/main/assets/www/index.html
+          if [ -f web/data.json ]; then cp web/data.json android/app/src/main/assets/www/data.json; fi
 
       - uses: actions/setup-java@v5
         with:
@@ -25,9 +34,8 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: |
-          echo "Android SDK: $ANDROID_HOME"
-          chmod +x gradlew
           set +e
+          chmod +x gradlew
           ./gradlew --no-daemon assembleDebug --stacktrace > build.log 2>&1
           code=$?
           tail -60 build.log
@@ -35,7 +43,6 @@ jobs:
             grep -nE "error:|e: |FAILURE|What went wrong|Could not|failed|Exception|AAPT|resource" build.log | grep -v "^.*at " | head -40 | while IFS= read -r line; do echo "::error::${line:0:900}"; done
             exit $code
           fi
-          set -e
           cp app/build/outputs/apk/debug/app-debug.apk ../FootballPrediction2026.apk
 
       - uses: actions/upload-artifact@v4
@@ -43,7 +50,6 @@ jobs:
           name: FootballPrediction2026-apk
           path: FootballPrediction2026.apk
 
-      # Publishes the APK on the repo's Releases page so it can be downloaded straight from a phone
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
@@ -52,16 +58,11 @@ jobs:
           files: FootballPrediction2026.apk
           make_latest: true
 
-  website:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Publish web/index.html to GitHub Pages (gh-pages branch)
+      - name: Publish website (GitHub Pages)
         run: |
           mkdir site && cp web/index.html site/ && touch site/.nojekyll
-          cd site
-          git init -q -b gh-pages
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git add -A && git commit -qm "Update website from ${GITHUB_SHA::7}"
+          if [ -f web/data.json ]; then cp web/data.json site/; fi
+          cd site && git init -q -b gh-pages
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add -A && git commit -qm "Update website"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
