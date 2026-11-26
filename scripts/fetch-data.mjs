@@ -30,9 +30,8 @@ const out = []; const report = {}; const errs = [];
 for (const [comp, code] of Object.entries(LEAGUES)) {
   report[comp] = 0;
   for (const m of months) {
-    const end = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 0));
-    const range = `${m.getUTCFullYear()}${pad(m.getUTCMonth() + 1)}01-${end.getUTCFullYear()}${pad(end.getUTCMonth() + 1)}${pad(end.getUTCDate())}`;
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard?dates=${range}&limit=1000`;
+    const range = `${m.getUTCFullYear()}${pad(m.getUTCMonth() + 1)}`;
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${code}/scoreboard?dates=${range}&limit=300`;
     try {
       const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 FootballPrediction2026' } }); if (!r.ok) { errs.push(`${comp} ${range} HTTP ${r.status}`); continue; }
       const j = await r.json();
