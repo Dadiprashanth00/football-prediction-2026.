@@ -1,0 +1,46 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync latest web app into the APK
+        run: cp web/index.html android/app/src/main/assets/www/index.html
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../FootballPrediction2026.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FootballPrediction2026-apk
+          path: FootballPrediction2026.apk
+
+      # Publishes the APK on the repo's Releases page so it can be downloaded straight from a phone
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Football Prediction 2026 – build ${{ github.run_number }}
+          body: Tap FootballPrediction2026.apk below to download and install on Android.
+          files: FootballPrediction2026.apk
+          make_latest: true

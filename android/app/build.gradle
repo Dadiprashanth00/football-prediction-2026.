@@ -1,0 +1,45 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.footballprediction2026.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.footballprediction2026.app"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        // Optional release signing: set these four values as environment variables
+        // (or GitHub Actions secrets) to produce a signed release APK.
+        release {
+            def ks = System.getenv("FP_KEYSTORE")
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("FP_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("FP_KEY_ALIAS")
+                keyPassword System.getenv("FP_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("FP_KEYSTORE")) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+}
