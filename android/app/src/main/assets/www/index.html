@@ -151,7 +151,7 @@ td.tn{display:flex;align-items:center;gap:8px;text-align:left}
 .accard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .accard header{position:static;display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:12px 14px;background:var(--card2);border-bottom:1px solid var(--line);backdrop-filter:none}
 .accard header b{font:700 21px "Barlow Condensed","Roboto Condensed",sans-serif}
-.leg{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.leg{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
 .leg:hover{background:var(--card2)}
 .leg .tt{font:700 15px/1.1 "Barlow Condensed","Roboto Condensed",sans-serif;text-align:center}.leg .tt small{display:block;font:500 11px Barlow,sans-serif;color:var(--dim)}
 .leg .mm{font-size:13px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -598,7 +598,7 @@ function weekendOf(offsetWeeks=0){const now=new Date();const d=new Date(now.toLo
 function buildAcca(day,n,mode){
  const c=state.matches.filter(m=>euDay(m.utc)===day&&!['PST','CANC'].includes(m.status)&&(state.accComp==='ALL'||m.comp===state.accComp)).map(m=>{const P=predFor(m);
   let pick,prob;if(mode==='dc'){pick=P.p1+P.px>=P.px+P.p2?'1X':'X2';prob=pick==='1X'?P.p1+P.px:P.px+P.p2}else{pick=P.p1>=P.p2?'1':'2';prob=Math.max(P.p1,P.p2)}
-  return{m,P,pick,prob}}).sort((a,b)=>b.prob-a.prob).slice(0,n);
+  return{m,P,pick,prob}}).sort((a,b)=>b.prob-a.prob).slice(0,n).sort((a,b)=>a.m.utc<b.m.utc?-1:1);
  c.forEach(x=>{const m=x.m;if(m.hg==null||m.status==='NS'){x.st='pending';return}const r=m.hg>m.ag?'1':m.hg===m.ag?'X':'2';const ok=x.pick.includes(r);x.st=m.status==='FT'?(ok?'won':'lost'):(ok?'live-ok':'live-no')});
  const comb=c.reduce((p,x)=>p*x.prob,1);const won=c.filter(x=>x.st==='won').length,lost=c.filter(x=>x.st==='lost').length;
  return{day,legs:c,comb,won,lost,settled:c.every(x=>x.st==='won'||x.st==='lost')&&c.length>0}}
@@ -608,7 +608,7 @@ function accaCard(A,title){
  const stx=x=>x.st==='won'?'<small class="st-won">✓ Won</small>':x.st==='lost'?'<small class="st-lost">✗ Lost</small>':x.st==='live-ok'?`<small class="st-live">Live ${x.m.hg}–${x.m.ag} ✓</small>`:x.st==='live-no'?`<small class="st-lost">Live ${x.m.hg}–${x.m.ag}</small>`:`<small class="conf-${conf(x.prob,x.P.n)}">${conf(x.prob,x.P.n)}</small>`;
  const status=A.settled?(A.lost?`<span class="st-lost">Lost (${A.won}/${A.legs.length} legs won)</span>`:'<span class="st-won">Acca won</span>'):A.lost?`<span class="st-lost">Busted · ${A.lost} leg${A.lost>1?'s':''} lost</span>`:A.legs.every(x=>x.st==='pending')?'Not started yet':`${A.won}/${A.legs.length} legs won so far`;
  return `<div class="accard"><header><b>${title} · ${A.legs.length} legs</b>${A.legs.length<(state.accN||10)?`<span class="note" style="margin:0">only ${A.legs.length} fixtures that day</span>`:''}<span class="note" style="margin:0">${fmtD(A.day+'T12:00:00Z')}</span></header>
- ${A.legs.map(x=>`<div class="leg" data-m="${esc(x.m.id)}"><div class="tt">${x.m.status==='NS'?fmtT(x.m.utc):x.m.status==='LIVE'?esc(x.m.minute)+"'":'FT'}<small>${esc(CMAP[x.m.comp].short)}</small></div><div><div class="pk">${badge(x.pick.includes('1')?x.m.home:x.m.away,'badge',x.pick.includes('1')?x.m.hc:x.m.ac)}${esc(lbl(x))}</div><div class="mm">${esc(x.m.home)} v ${esc(x.m.away)}${x.m.hg!=null&&x.m.status!=='NS'?` · ${x.m.hg}–${x.m.ag}`:''}</div></div><div class="pp">${pct(x.prob)}${stx(x)}</div></div>`).join('')}
+ ${A.legs.map(x=>`<div class="leg" data-m="${esc(x.m.id)}"><div class="tt">${x.m.status==='NS'?fmtT(x.m.utc):x.m.status==='LIVE'?esc(x.m.minute)+"'":'FT'}<small>${new Date(x.m.utc).toLocaleDateString([],{weekday:'short'})} · ${esc(CMAP[x.m.comp].short)}</small></div><div><div class="pk">${badge(x.pick.includes('1')?x.m.home:x.m.away,'badge',x.pick.includes('1')?x.m.hc:x.m.ac)}${esc(lbl(x))}</div><div class="mm">${esc(x.m.home)} v ${esc(x.m.away)}${x.m.hg!=null&&x.m.status!=='NS'?` · ${x.m.hg}–${x.m.ag}`:''}</div></div><div class="pp">${pct(x.prob)}${stx(x)}</div></div>`).join('')}
  <div class="accsum"><div><small>Chance all legs win</small><b>${pct(A.comb)}</b></div><div><small>Break-even odds</small><b>${(1/A.comb).toFixed(A.comb>.1?2:0)}</b></div><div><small>Status</small><b style="font-size:16px">${status}</b></div></div>
  <div style="padding:0 14px 12px"><button class="btn" data-copyacca="${A.day}">Copy acca</button></div></div>`}
 function accas(){
