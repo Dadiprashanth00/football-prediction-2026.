@@ -76,7 +76,13 @@ aside h3{font:700 13px Barlow,system-ui,sans-serif;color:var(--dim);margin:14px 
 .bar .h{background:var(--h);color:#04281a}.bar .x{background:var(--x);color:#1c2723}.bar .a{background:var(--a);color:#05203f}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
 .tag{font-size:12.5px;padding:2px 8px;border-radius:7px;background:var(--bg2);border:1px solid var(--line);white-space:nowrap}
-.tag.ok{border-color:#2d6a4d;color:var(--win)}.tag.no{border-color:#6a3328;color:var(--loss)}
+.tag.ok{border-color:#2d6a4d;color:var(--win)}.tag.safe{border-color:#6b5a1a;color:var(--acc)}
+.safebox{background:var(--card);border:1px solid #6b5a1a;border-radius:14px;padding:14px;margin-bottom:16px}
+.safebox .pickline{font:800 26px/1.1 "Barlow Condensed",Barlow,sans-serif;color:var(--acc);margin:2px 0 8px}
+.safebox .facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px}
+.safebox .facts div{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px}
+.safebox .facts small{display:block;color:var(--mute);font-size:12.5px}
+.tag.no{border-color:#6a3328;color:var(--loss)}
 .conf-High{color:var(--win)}.conf-Medium{color:var(--acc)}.conf-Low{color:var(--loss)}
 .empty{padding:40px 20px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:14px}
 .more{display:flex;justify-content:center;margin:14px 0}
@@ -175,7 +181,7 @@ nav.bot{display:none}
  .chip .clogo{width:20px;height:20px}
  .tabs{display:none}
  nav.bot{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:30;background:#05150ff2;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
- nav.bot button{flex:1;background:none;border:0;padding:8px 0 10px;font:600 12px Barlow,system-ui,sans-serif;color:var(--mute);display:grid;justify-items:center;gap:2px;cursor:pointer;min-height:56px}
+ nav.bot button{flex:1;min-width:0;background:none;border:0;padding:8px 0 10px;font:600 11px Barlow,system-ui,sans-serif;color:var(--mute);display:grid;justify-items:center;gap:2px;cursor:pointer;min-height:56px}
  nav.bot button svg{width:22px;height:22px}
  nav.bot button.on{color:var(--acc)}
 }
@@ -216,7 +222,7 @@ nav.bot{display:none}
    <input type="search" id="q" placeholder="Search team or match" aria-label="Search team or match">
    <input type="date" id="dt" aria-label="Filter by date" min="2026-08-01" max="2027-06-10">
    <select id="mkt" aria-label="Highlight market">
-    <option value="1x2">Highlight: Match result</option><option value="ou25">Highlight: Over/Under 2.5</option><option value="btts">Highlight: BTTS</option><option value="dc">Highlight: Double chance</option>
+    <option value="1x2">Highlight: Match result</option><option value="ou25">Highlight: Over/Under 2.5</option><option value="btts">Highlight: BTTS</option><option value="dc">Highlight: Double chance</option><option value="safe">Highlight: Safest bet</option>
    </select>
    <button class="btn" id="clr">Clear</button>
   </div>
@@ -462,7 +468,17 @@ function picks(P){
  const o25=P.ou[2.5]>=.5?['Over 2.5',P.ou[2.5]]:['Under 2.5',1-P.ou[2.5]];
  const bt=P.btts>=.5?['BTTS Yes',P.btts]:['BTTS No',1-P.btts];
  return{'1x2':r,dc,ou25:o25,btts:bt}}
+function pickFor(m,P,k){if(k==='safe'){const s=safest(P,m);return[s.label,s.score]}return picks(P)[k]}
 const lbl1x2={1:'Home win',X:'Draw',2:'Away win'};
+/* ---- safest bet: pick the market most likely to win, checked against how often such picks really won this season ---- */
+const SAFE_K=['1','2','1X','X2','o15','o25','u25','u35','by','bn'];
+function mProb(P,k){return{'1':P.p1,'2':P.p2,'1X':P.p1+P.px,'X2':P.px+P.p2,o15:P.ou[1.5],o25:P.ou[2.5],u25:1-P.ou[2.5],u35:1-P.ou[3.5],by:P.btts,bn:1-P.btts}[k]}
+function mHit(k,hg,ag){const t=hg+ag;return{'1':hg>ag,'2':ag>hg,'1X':hg>=ag,'X2':ag>=hg,o15:t>=2,o25:t>=3,u25:t<=2,u35:t<=3,by:hg>0&&ag>0,bn:!(hg>0&&ag>0)}[k]}
+function mLabel(k,m){return{'1':m.home+' to win','2':m.away+' to win','1X':m.home+' win or draw','X2':m.away+' win or draw',o15:'Over 1.5 goals',o25:'Over 2.5 goals',u25:'Under 2.5 goals',u35:'Under 3.5 goals',by:'Both teams to score',bn:'Not both teams to score'}[k]}
+function calRate(k,p){const C=state.cal&&state.cal[k];if(!C)return[null,0];const b=Math.min(19,Math.floor(p*20));let h=0,n=0;for(let i=b-1;i<=b+1;i++){if(C[i]){h+=C[i][0];n+=C[i][1]}}return n>=15?[h/n,n]:[null,n]}
+function safeOptions(P,m){return SAFE_K.map(k=>{const p=mProb(P,k);const[r,n]=calRate(k,p);return{k,p,rate:r,n,score:Math.min(p,r==null?p-.08:r),label:mLabel(k,m)}}).sort((a,b)=>b.score-a.score)}
+function safest(P,m){return safeOptions(P,m)[0]}
+const safeWord=s=>s>=.85?'Very safe':s>=.78?'Safe':s>=.7?'Fairly safe':'Risky';
 
 /* ================= live match analysis ================= */
 const SUM=new Map();
@@ -541,6 +557,10 @@ function computeAcc(){// walk-forward evaluation using only data before each mat
   Object.entries(h).forEach(([k,v])=>{add(k,m.comp,v);add(k,'ALL',v)});
   const c=pk['1x2'][1];if(c>=.6)add('hc',m.comp,h['1x2']),add('hc','ALL',h['1x2']);
   m._hit=h;recent.push(m)});
+ const cal={};SAFE_K.forEach(k=>cal[k]=[]);
+ recent.forEach(m=>{const P=predFor(m);SAFE_K.forEach(k=>{const b=Math.min(19,Math.floor(mProb(P,k)*20));const c=cal[k][b]=cal[k][b]||[0,0];c[0]+=mHit(k,m.hg,m.ag)?1:0;c[1]++})});
+ state.cal=cal;
+ recent.forEach(m=>{const s=safest(predFor(m),m);const hit=mHit(s.k,m.hg,m.ag);m._hit.safe=hit;add('safe',m.comp,hit);add('safe','ALL',hit)});
  state.acc=A;state.recent=recent}
 
 /* ================= rendering ================= */
@@ -557,19 +577,19 @@ function renderRail(){
  const all={id:'ALL',name:'All competitions'};
  $('#rail').innerHTML=item(all)+'<h3>Domestic leagues</h3>'+COMPS.filter(c=>c.type==='league').map(c=>item({...c,name:c.name})).join('')+'<h3>UEFA</h3>'+COMPS.filter(c=>c.type==='uefa').map(item).join('');
  $('#chips').innerHTML=[all,...COMPS].map(c=>`<button class="chip ${state.comp===c.id?'on':''}" data-c="${c.id}">${c.id==='ALL'?'':clogo(c)}${esc(c.id==='ALL'?'All':c.short)}</button>`).join('')}
-const TABS=[['today','Today'],['live','Live'],['up','Upcoming'],['acca','Accas'],['res','Results'],['table','Standings'],['acc','Accuracy']];
-const ICONS={today:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>',live:'<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',up:'<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/>',res:'<path d="M5 12l4 4 10-10"/>',acca:'<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/>',table:'<path d="M4 5h16M4 10h16M4 15h16M4 20h16"/>',acc:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
+const TABS=[['today','Today'],['live','Live'],['up','Upcoming'],['safe','Safest bets'],['acca','Accas'],['res','Results'],['table','Standings'],['acc','Accuracy']];
+const ICONS={safe:'<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',today:'<path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"/>',live:'<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',up:'<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8"/>',res:'<path d="M5 12l4 4 10-10"/>',acca:'<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/>',table:'<path d="M4 5h16M4 10h16M4 15h16M4 20h16"/>',acc:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'};
 function renderTabs(){const live=state.matches.filter(m=>inComp(m)&&m.status==='LIVE').length;const td=state.matches.filter(m=>inComp(m)&&ymd(m.utc)===today()).length;
  const c={today:td,live};$('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab ${k==='live'?'lvt':''} ${state.tab===k?'on':''}" data-t="${k}" role="tab" aria-selected="${state.tab===k}">${l}${c[k]?`<span class="c">${c[k]}</span>`:''}</button>`).join('');
- $('#bot').innerHTML=TABS.map(([k,l])=>`<button class="${state.tab===k?'on':''}" data-t="${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[k]}</svg>${l}${k==='live'&&live?` (${live})`:''}</button>`).join('');
- $('#filters').style.display=['table','acc','acca'].includes(state.tab)?'none':'flex'}
+ $('#bot').innerHTML=TABS.map(([k,l])=>`<button class="${state.tab===k?'on':''}" data-t="${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[k]}</svg>${k==='safe'?'Safest':l}${k==='live'&&live?` (${live})`:''}</button>`).join('');
+ $('#filters').style.display=['table','acc','acca','safe'].includes(state.tab)?'none':'flex'}
 function renderHero(){
  const ms=state.matches.filter(inComp);const td=ms.filter(m=>ymd(m.utc)===today());const lv=ms.filter(m=>m.status==='LIVE');const c=state.comp;
  const [a1,n1]=hitRate('1x2',c),[a2]=hitRate('ou25',c),[a3]=hitRate('btts',c),[a4,n4]=hitRate('hc',c);
  const st=(v,l,s,cls='')=>`<div class="stat ${cls}"><div class="v num">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`;
  $('#hero').innerHTML=st(td.length,"Today's matches",td.filter(m=>m.status==='FT').length+' finished'+(state.updated&&!state.fellBack&&state.cfg.src!=='demo'?' · updated '+new Date(state.updated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''))+st(lv.length,'Live now',lv.length?'auto-refreshing':'none in play','lv')+st(a1==null?'–':pct(a1),'1X2 hit rate',n1+' graded matches','ac')+st(a2==null?'–':pct(a2),'Over/Under 2.5','hit rate')+st(a4==null?(a3==null?'–':pct(a3)):pct(a4),a4==null?'BTTS hit rate':'Picks ≥60% hit',n4?n4+' picks':'')}
 function card(m){
- const c=CMAP[m.comp],P=predFor(m),pk=picks(P),sel=pk[state.mkt];
+ const c=CMAP[m.comp],P=predFor(m),sel=pickFor(m,P,state.mkt),sf=safest(P,m);
  const fin=m.status==='FT',lv=m.status==='LIVE',has=m.hg!=null&&m.status!=='NS';
  const time=lv?`<div class="time lv"><span class="dot"></span>${m.minute==='HT'?'HT':esc(m.minute)+"'"}<small>Live</small></div>`:fin?`<div class="time">FT<small>${fmtD(m.utc)}</small></div>`:m.status!=='NS'?`<div class="time">${esc(m.status)}<small>${fmtD(m.utc)}</small></div>`:`<div class="time">${fmtT(m.utc)}<small>${fmtD(m.utc)}</small></div>`;
  const hw=has&&m.hg>m.ag,aw=has&&m.ag>m.hg;
@@ -578,7 +598,7 @@ function card(m){
  let hit='';if(fin&&m._hit){const k=state.mkt;hit=`<span class="tag ${m._hit[k]?'ok':'no'}">${m._hit[k]?'✓ Correct':'✗ Missed'}</span>`}
   return `<div class="match" data-m="${esc(m.id)}" data-live="${lv?1:0}" tabindex="0" role="button" aria-label="${esc(m.home)} vs ${esc(m.away)}">${time}<div class="teams">${tm(m.home,m.hc,m.hg,hw,aw)}${tm(m.away,m.ac,m.ag,aw,hw)}</div>
  <div class="pr"><div class="bar" title="Home / Draw / Away probability"><div class="h" style="width:${w(P.p1)}%">1 ${Math.round(P.p1*100)}</div><div class="x" style="width:${w(P.px)}%">X ${Math.round(P.px*100)}</div><div class="a" style="width:${w(P.p2)}%">2 ${Math.round(P.p2*100)}</div></div>
- <div class="tags"><span class="tag"><b>${esc(sel[0]==='1'||sel[0]==='X'||sel[0]==='2'?lbl1x2[sel[0]]:sel[0])}</b> ${pct(sel[1])} · <span class="conf-${conf(sel[1],P.n)}">${conf(sel[1],P.n)}</span></span><span class="tag">xG ${P.lh.toFixed(2)}–${P.la.toFixed(2)}</span>${hit}</div></div></div>`}
+ <div class="tags"><span class="tag"><b>${esc(sel[0]==='1'||sel[0]==='X'||sel[0]==='2'?lbl1x2[sel[0]]:sel[0])}</b> ${pct(sel[1])} · <span class="conf-${conf(sel[1],P.n)}">${conf(sel[1],P.n)}</span></span>${state.mkt!=='safe'&&m.status==='NS'?`<span class="tag safe" title="Safest bet for this match">Safest: <b>${esc(sf.label)}</b> ${pct(sf.score)}</span>`:''}<span class="tag">xG ${P.lh.toFixed(2)}–${P.la.toFixed(2)}</span>${hit}</div></div></div>`}
 function groupRender(ms,opts={}){
  if(!ms.length)return `<div class="empty">${opts.empty||'No matches for this selection.'}</div>`;
  let out='',key='';ms.forEach(m=>{const k=ymd(m.utc)+m.comp;if(k!==key){key=k;const c=CMAP[m.comp];out+=`<div class="grp">${clogo(c)}${esc(c.name)} <span>${fmtD(m.utc)} · ${esc(m.round||'')}</span></div>`}out+=card(m)});return out}
@@ -595,6 +615,7 @@ function renderView(){
  else if(t==='table')v.innerHTML=standings();
  else if(t==='acc')v.innerHTML=accuracy();
  else if(t==='acca')v.innerHTML=accas();
+ else if(t==='safe')v.innerHTML=safeView();
  liveMini()}
 function latest(){const r=state.matches.filter(m=>inComp(m)&&m.status==='FT'&&ymd(m.utc)<today()).slice(-6).reverse();if(!r.length)return'';
  return `<div class="grp" style="margin-top:28px">Latest results</div>`+r.map(card).join('')}
@@ -607,10 +628,19 @@ function table(c){const T={};const ms=state.matches.filter(m=>m.comp===c.id&&m.s
 function standings(){const cs=state.comp==='ALL'?COMPS:[CMAP[state.comp]];
  return cs.map(c=>{const t=table(c);if(!t.length)return'';const zone=(i)=>c.type==='uefa'?(i<8?'#5ee3a1':i<24?'#ffd23f':'#ff8a73'):(i<4?'#5ee3a1':i>=t.length-3?'#ff8a73':'transparent');
   return `<div class="grp">${clogo(c)}${esc(c.name)} <span>${c.type==='uefa'?'League phase':'Table'}</span></div><div class="panel scroll"><table><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead><tbody>${t.map((r,i)=>`<tr><td style="box-shadow:inset 3px 0 ${zone(i)}">${i+1}</td><td class="tn">${badge(r.n)}${esc(r.n)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf-r.ga>0?'+':''}${r.gf-r.ga}</td><td><b>${r.pts}</b></td><td><span class="form">${r.f.slice(-5).map(x=>`<i class="${x}">${x}</i>`).join('')}</span></td></tr>`).join('')}</tbody></table></div><p class="note">${c.type==='uefa'?'Top 8 go straight to the round of 16; 9th–24th enter the knockout play-offs.':(c.note||'Top 4 highlighted for Champions League places; bottom 3 for relegation (Ligue 1 and Primeira Liga use play-offs for the 16th-placed side).')}</p>`}).join('')}
-function accuracy(){const rows=[['ALL',{name:'All competitions'}],...COMPS.map(c=>[c.id,c])];const K=[['1x2','Match result'],['dc','Double chance'],['ou25','Over/Under 2.5'],['btts','BTTS'],['cs','Correct score'],['hc','1X2 picks ≥60%']];
+function accuracy(){const rows=[['ALL',{name:'All competitions'}],...COMPS.map(c=>[c.id,c])];const K=[['1x2','Match result'],['dc','Double chance'],['ou25','Over/Under 2.5'],['btts','BTTS'],['cs','Correct score'],['hc','1X2 picks ≥60%'],['safe','Safest bet']];
  const cell=(k,id)=>{const [r,n]=hitRate(k,id);return r==null?'<td>–</td>':`<td><b>${pct(r)}</b> <span style="color:var(--dim)">${n}</span></td>`};
  return `<div class="panel"><h4 class="cond" style="margin:0 0 6px;font-size:22px">How the model has performed</h4><p class="note" style="margin-bottom:12px">Walk-forward test: each finished match was predicted using only results that existed before kick-off, then graded against the final score. Numbers after each rate are matches graded.</p><div class="scroll"><table><thead><tr><th></th><th>Competition</th>${K.map(k=>`<th>${k[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(([id,c])=>`<tr><td>${id==='ALL'?'':clogo(c)}</td><td style="text-align:left">${esc(c.name)}</td>${K.map(k=>cell(k[0],id)).join('')}</tr>`).join('')}</tbody></table></div>
  <p class="note">For context: picking the home team every time typically hits around 45%, and exact-score picks rarely pass 12% for any model. A good model shows its value in calibration over hundreds of matches, not in any single weekend.</p></div>`}
+
+/* ================= safest bets ================= */
+function safeView(){const now=new Date().toISOString(),lim=addDays(today(),state.safeDays||4);
+ const rows=state.matches.filter(m=>inComp(m)&&m.status==='NS'&&m.utc>=now&&ymd(m.utc)<=lim).map(m=>{const P=predFor(m);return{m,P,s:safest(P,m)}}).sort((a,b)=>b.s.score-a.s.score);
+ const [r,n]=hitRate('safe',state.comp);
+ const row=(x,i)=>{const m=x.m,s=x.s;return `<div class="leg" data-m="${esc(m.id)}"><div class="tt">${fmtT(m.utc)}<small>${fmtD(m.utc)} · ${esc(CMAP[m.comp].short)}</small></div><div><div class="pk">${i+1}. ${esc(s.label)}</div><div class="mm">${esc(m.home)} v ${esc(m.away)} · form ${x.P.fh.map(f=>f.r).join('')||'–'} v ${x.P.fa.map(f=>f.r).join('')||'–'}</div></div><div class="pp">${pct(s.score)}<small class="conf-${s.score>=.78?'High':s.score>=.7?'Medium':'Low'}">${safeWord(s.score)}</small></div></div>`};
+ return `<div class="warn"><b>How to read this:</b> every upcoming match gets the one bet the model rates most likely to win, checked against how often bets like it really won this season. ${r!=null?`So far this season the safest pick won <b>${pct(r)}</b> of ${n} graded matches${state.comp!=='ALL'?' in this competition':''}.`:''} Safe bets pay low odds, so one loss can cancel several wins. Bet singles rather than long accas, only if you are 18+ and where it is legal, and only money you can afford to lose.</div>
+ <div class="accbar"><select id="safeDays" aria-label="Days ahead">${[1,2,4,7].map(d=>`<option value="${d}" ${d===(state.safeDays||4)?'selected':''}>Next ${d} day${d>1?'s':''}</option>`).join('')}</select></div>
+ <div class="accard"><header><b>Safest bet for every match · ${rows.length} fixtures</b><span class="note" style="margin:0">tap a match for the full analysis</span></header>${rows.length?rows.map(row).join(''):'<div class="empty" style="border:0">No upcoming fixtures in this range.</div>'}</div>`}
 
 /* ================= accumulators ================= */
 const euDay=u=>new Date(u).toLocaleDateString('en-CA',{timeZone:'Europe/London'});
@@ -661,6 +691,18 @@ async function openMatch(id){
  const dnb1=P.p1/(P.p1+P.p2),dnb2=P.p2/(P.p1+P.p2);
  const ftR=[['Home win (1)',P.p1],['Draw (X)',P.px],['Away win (2)',P.p2]];
  const reasons=why(m,P,c);
+ const SO=safeOptions(P,m),S0=SO[0];
+ const venue=(t,home)=>{const l=(state.H[t]||[]).filter(x=>x.comp===m.comp&&x.utc<m.utc&&(home?x.home===t:x.away===t));let w=0,d=0,gf=0,ga=0;l.forEach(x=>{const f=home?x.hg:x.ag,a=home?x.ag:x.hg;gf+=f;ga+=a;f>a?w++:f===a&&d++});return l.length?`${w}W ${d}D ${l.length-w-d}L · goals ${gf}–${ga}`:'No games yet'};
+ const pos=t=>{if(c.type!=='league')return null;const T=table(c);const i=T.findIndex(r=>r.n===t);return i<0?null:i+1};
+ const ph=pos(m.home),pa=pos(m.away);
+ const safeBox=m.status==='NS'||m.status==='LIVE'?`<div class="safebox"><h4 style="margin:0">Safest bet for this match</h4><div class="pickline">${esc(S0.label)}</div>
+  <p style="margin:0">Model chance <b>${pct(S0.p)}</b> · ${S0.rate!=null?`bets like this won <b>${pct(S0.rate)}</b> of ${S0.n} graded matches this season`:'not enough graded matches to check this market yet'} · <b>${safeWord(S0.score)}</b></p>
+  <p class="note" style="margin:6px 0 0">Next safest: ${SO.slice(1,3).map(o=>`${esc(o.label)} ${pct(o.score)}`).join(' · ')}</p>
+  <div class="facts"><div><small>${esc(m.home)} at home</small>${venue(m.home,true)}</div><div><small>${esc(m.away)} away</small>${venue(m.away,false)}</div>
+  <div><small>Form, last 5</small>${esc(m.home)} ${P.fh.map(x=>x.r).join('')||'–'} · ${esc(m.away)} ${P.fa.map(x=>x.r).join('')||'–'}</div>
+  ${ph&&pa?`<div><small>League position</small>${esc(m.home)} ${ph} · ${esc(m.away)} ${pa}</div>`:''}
+  <div><small>Head-to-head</small>${P.h2h.length?P.h2h.slice(0,3).map(x=>`${esc(x.home)} ${x.hg}–${x.ag} ${esc(x.away)}`).join('<br>'):'No earlier meeting in the data'}</div></div>
+  <p class="note" style="margin:10px 0 0">The shown % is the lower of the model chance and the real past hit rate, so it is not inflated. Safer bets pay lower odds, and no bet is certain. Check team news before kick-off.</p></div>`:'';
  const fl=(f)=>f.length?`<span class="form">${f.map(x=>`<i class="${x.r}" title="${esc((x.home?'vs ':'at ')+x.opp+' '+x.gf+'-'+x.ga)}">${x.r}</i>`).join('')}</span>`:'<span class="note">No matches yet this season</span>';
  const fr=(f,team)=>f.map(x=>`<tr><td>${fmtD(x.utc)}</td><td class="tn">${x.home?'vs':'at'} ${badge(x.opp)} ${esc(x.opp)}</td><td><b>${x.gf}–${x.ga}</b></td><td><span class="form"><i class="${x.r}">${x.r}</i></span></td></tr>`).join('');
  const h2h=P.h2h;
@@ -670,7 +712,7 @@ async function openMatch(id){
  <div class="t">${badge(m.away,'',m.ac)}${esc(m.away)}</div></div>
  <div class="xg"><span>Expected goals <b>${P.lh.toFixed(2)} – ${P.la.toFixed(2)}</b></span><span>Predicted score <b>${P.cs[0][0]}–${P.cs[0][1]}</b></span><span>Model pick <b>${lbl1x2[pk['1x2'][0]]} ${pct(pk['1x2'][1])}</b></span></div></div>
  <div id="lvsec">${m._S?liveSection(m,P,m._S):(m.id.startsWith('es')&&(m.status==='LIVE'||m.status==='FT')?'<div class="lv"><p class="note">Loading live statistics…</p></div>':'')}</div>
- <div class="sec"><h4>${m.status==='LIVE'?'Pre-match prediction · ':''}Match result</h4><div class="mk">${best(ftR)}</div>
+ <div class="sec">${safeBox}<h4>${m.status==='LIVE'?'Pre-match prediction · ':''}Match result</h4><div class="mk">${best(ftR)}</div>
  <h4>Double chance &amp; Draw no bet</h4><div class="mk">${best([['1X',P.p1+P.px],['X2',P.px+P.p2],['12',P.p1+P.p2]])}${cell('DNB · '+esc(m.home),dnb1,dnb1>.5)}${cell('DNB · '+esc(m.away),dnb2,dnb2>.5)}</div>
  <h4>Goals</h4><div class="mk">${[.5,1.5,2.5,3.5].map(t=>cell('Over '+t,P.ou[t],P.ou[t]>=.5)+cell('Under '+t,1-P.ou[t],P.ou[t]<.5)).join('')}${cell('BTTS · Yes',P.btts,P.btts>=.5)}${cell('BTTS · No',1-P.btts,P.btts<.5)}</div>
  <h4>Half-time result</h4><div class="mk">${best([['HT home lead',HF.ht[1]],['HT draw',HF.ht.X],['HT away lead',HF.ht[2]]])}</div>
@@ -727,7 +769,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)
  const mo=e.target.closest('[data-more]');if(mo){state.days[mo.dataset.more]+=7;renderView()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();$('#dlg').classList.remove('on')}if(e.key==='Enter'&&e.target.matches('.match'))openMatch(e.target.dataset.m)});
 $('#ov').onclick=closeSheet;
-document.addEventListener('change',e=>{if(e.target.id==='accN'){state.accN=+e.target.value;store.set('accN',state.accN);renderView()}else if(e.target.id==='accMode'){state.accMode=e.target.value;store.set('accMode',state.accMode);renderView()}else if(e.target.id==='accComp'){state.accComp=e.target.value;renderView()}});
+document.addEventListener('change',e=>{if(e.target.id==='safeDays'){state.safeDays=+e.target.value;renderView();return}if(e.target.id==='accN'){state.accN=+e.target.value;store.set('accN',state.accN);renderView()}else if(e.target.id==='accMode'){state.accMode=e.target.value;store.set('accMode',state.accMode);renderView()}else if(e.target.id==='accComp'){state.accComp=e.target.value;renderView()}});
 $('#q').oninput=e=>{state.q=e.target.value;renderView()};
 $('#dt').onchange=e=>{state.date=e.target.value;renderView()};
 $('#mkt').onchange=e=>{state.mkt=e.target.value;store.set('mkt',state.mkt);renderView()};
