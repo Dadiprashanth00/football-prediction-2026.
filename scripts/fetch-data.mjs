@@ -1,7 +1,7 @@
 // Downloads real 2026/27 fixtures, results and scores from ESPN's public soccer feed
-// for all 8 competitions and writes web/data.json (used by the website and the APK).
+// for all 12 competitions and writes web/data.json (used by the website and the APK).
 import { writeFileSync } from 'node:fs';
-const LEAGUES = { PL:'eng.1', PD:'esp.1', SA:'ita.1', FL1:'fra.1', PPL:'por.1', CL:'uefa.champions', EL:'uefa.europa', ECL:'uefa.europa.conf' };
+const LEAGUES = { PL:'eng.1', PD:'esp.1', SA:'ita.1', FL1:'fra.1', PPL:'por.1', CL:'uefa.champions', EL:'uefa.europa', ECL:'uefa.europa.conf', BL1:'ger.1', DED:'ned.1', SPL:'sco.1', TSL:'tur.1' };
 const months = [];
 for (let d = new Date(Date.UTC(2026, 6, 1)); d < new Date(Date.UTC(2027, 6, 1)); d.setUTCMonth(d.getUTCMonth() + 1)) months.push(new Date(d));
 const pad = n => String(n).padStart(2, '0');

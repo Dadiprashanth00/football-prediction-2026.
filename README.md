@@ -3,8 +3,8 @@
 Statistical football prediction platform for the 2026/27 season.
 Desktop website, mobile website and Android app share one codebase (`web/index.html`).
 
-Competitions: Premier League, La Liga, Serie A, Ligue 1, Primeira Liga,
-UEFA Champions League, Europa League and Conference League (real 2026/27 participants).
+Competitions: Premier League, La Liga, Serie A, Ligue 1, Primeira Liga, Bundesliga,
+Eredivisie, Scottish Premiership, Süper Lig, UEFA Champions League, Europa League and Conference League (real 2026/27 participants).
 
 ## What's inside
 
